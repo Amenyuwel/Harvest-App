@@ -1,14 +1,9 @@
 import React from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 
 export default function Profile() {
   return (
     <View className="flex-1 items-center justify-center bg-gray-100 p-6">
-      {/* Profile Image */}
-      <Image
-        source={{ uri: "https://i.pravatar.cc/300" }}
-        className="w-32 h-32 rounded-full mb-4"
-      />
 
       {/* Name (Heading - Lato) */}
       <Text className="text-2xl font-heading text-gray-800">Amenyuwel</Text>

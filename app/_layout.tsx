@@ -1,4 +1,5 @@
 import "@/global.css";
+import { useColorScheme } from "@/hooks/useColorScheme";
 import { Lato_400Regular, Lato_700Bold } from "@expo-google-fonts/lato";
 import { Quicksand_400Regular, Quicksand_500Medium } from "@expo-google-fonts/quicksand";
 import {
@@ -11,11 +12,8 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
-import { useColorScheme } from "@/hooks/useColorScheme";
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-
   const [loaded] = useFonts({
     Lato_400Regular,
     Lato_700Bold,
@@ -24,12 +22,16 @@ export default function RootLayout() {
   });
 
   if (!loaded) {
-    return null; // show splash/loading until fonts are ready
+    return null;
   }
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack>
+        {/* Auth screens first - these will be the initial routes */}
+        <Stack.Screen name="auth/register" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+        {/* Tabs come after auth */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
