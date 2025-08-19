@@ -1,3 +1,6 @@
+import "@/global.css";
+import { Lato_400Regular, Lato_700Bold } from "@expo-google-fonts/lato";
+import { Quicksand_400Regular, Quicksand_500Medium } from "@expo-google-fonts/quicksand";
 import {
   DarkTheme,
   DefaultTheme,
@@ -12,13 +15,16 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+
   const [loaded] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+    Lato_400Regular,
+    Lato_700Bold,
+    Quicksand_400Regular,
+    Quicksand_500Medium,
   });
 
   if (!loaded) {
-    // Async font loading only occurs in development.
-    return null;
+    return null; // show splash/loading until fonts are ready
   }
 
   return (
