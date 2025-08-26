@@ -1,8 +1,31 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Alert } from "react-native";
 import { useBarangay } from "../hooks/useBarangay";
 import { useCrops } from "../hooks/useCrops";
 import { useRouter, useLocalSearchParams } from "expo-router";
+
+// Helper to format contact as '63+ 948 279 2687'
+function formatPhilippineContact(input: string) {
+  // Remove all non-digit characters
+  let digits = input.replace(/\D/g, "");
+
+  // Remove leading '0' if present
+  if (digits.startsWith("0")) digits = digits.slice(1);
+
+  // Remove leading '63' if present
+  if (digits.startsWith("63")) digits = digits.slice(2);
+
+  // Limit to 10 digits (Philippine mobile number)
+  digits = digits.slice(0, 10);
+
+  // Format as '63+ XXX XXX XXXX'
+  let formatted = "63+";
+  if (digits.length > 0) formatted += " " + digits.slice(0, 3);
+  if (digits.length > 3) formatted += " " + digits.slice(3, 6);
+  if (digits.length > 6) formatted += " " + digits.slice(6, 10);
+
+  return formatted.trim();
+}
 
 export function useRegister(debug = false) {
   // --- Form state ---
@@ -14,7 +37,8 @@ export function useRegister(debug = false) {
   const [selectedCrop, setSelectedCrop] = useState("");
   const [area, setArea] = useState("");
   const [selectedBarangay, setSelectedBarangay] = useState("");
-  const [contact, setContact] = useState("");
+  const [barangayName, setBarangayName] = useState("");
+  const [contact, _setContact] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -22,6 +46,9 @@ export function useRegister(debug = false) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [generatedId, setGeneratedId] = useState("");
+
+  // --- Success Dialog state ---
+  const [showRegisterSuccess, setShowRegisterSuccess] = useState(false);
 
   // --- External data ---
   const { crops, loading: cropsLoading } = useCrops();
@@ -34,10 +61,15 @@ export function useRegister(debug = false) {
     debug && console.log("[useRegister]", ...args);
 
   // --- Effects ---
+  const didInit = useRef(false);
+
   useEffect(() => {
-    log("Params:", params);
-    if (params?.rsbsa) setRsbsa(String(params.rsbsa));
-    if (params?.barangay) setSelectedBarangay(String(params.barangay));
+    if (!didInit.current) {
+      log("Params:", params);
+      if (params?.rsbsa) setRsbsa(String(params.rsbsa));
+      if (params?.barangay) setSelectedBarangay(String(params.barangay));
+      didInit.current = true;
+    }
   }, [params]);
 
   useEffect(() => {
@@ -46,6 +78,7 @@ export function useRegister(debug = false) {
     if (selectedBarangay && rsbsa) {
       const barangay = barangays.find((b) => b.barangayId === selectedBarangay);
       if (barangay) {
+        setBarangayName(barangay.barangayName);
         const lastFive = rsbsa.match(/(\d{5})$/)?.[1] ?? rsbsa;
         const id = `126303-${barangay.barangayId}-${lastFive}`;
         setGeneratedId(id);
@@ -59,6 +92,11 @@ export function useRegister(debug = false) {
     const names = [firstName, middleName, lastName].filter((n) => n.trim());
     setFullName(names.join(" "));
   }, [firstName, middleName, lastName]);
+
+  // Replace setContact with formatted setter
+  const setContact = (val: string) => {
+    _setContact(formatPhilippineContact(val));
+  };
 
   // --- Handlers ---
   const handleRegister = async () => {
@@ -93,10 +131,6 @@ export function useRegister(debug = false) {
 
       const cropName =
         crops.find((c) => c.cropId === selectedCrop)?.cropName ?? "";
-      const barangayName =
-        barangays.find((b) => b.barangayId === selectedBarangay)
-          ?.barangayName ?? "";
-
       const response = await fetch(`${apiUrl}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,17 +153,7 @@ export function useRegister(debug = false) {
       log("Registration response:", data);
 
       if (data.success) {
-        Alert.alert(
-          "Registration successful!",
-          `Your farmer ID is: ${generatedId}`,
-          [
-            {
-              text: "OK",
-              onPress: () =>
-                router.replace({ pathname: "/auth/login", params: { rsbsa } }),
-            },
-          ]
-        );
+        setShowRegisterSuccess(true);
       } else {
         setError(data.message || "Registration failed. Please try again.");
         log("Registration failed:", data.message);
@@ -145,6 +169,11 @@ export function useRegister(debug = false) {
   };
 
   const handleBack = () => router.replace("/auth/rsbsa");
+
+  const handleRegisterSuccessClose = () => {
+    // Use the latest generatedId (the new RSBSA with updated barangay)
+    router.replace({ pathname: "/auth/login", params: { rsbsa: generatedId } });
+  };
 
   // --- Exposed API ---
   return {
@@ -164,6 +193,8 @@ export function useRegister(debug = false) {
     setArea,
     selectedBarangay,
     setSelectedBarangay,
+    barangayName,
+    setBarangayName,
     contact,
     setContact,
     password,
@@ -176,6 +207,10 @@ export function useRegister(debug = false) {
     error,
     generatedId,
 
+    // success dialog
+    showRegisterSuccess,
+    setShowRegisterSuccess,
+
     // external data
     crops,
     cropsLoading,
@@ -185,5 +220,6 @@ export function useRegister(debug = false) {
     // handlers
     handleRegister,
     handleBack,
+    handleRegisterSuccessClose,
   };
 }
