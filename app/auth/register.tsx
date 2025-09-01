@@ -2,7 +2,6 @@ import React from "react";
 import { View, ScrollView, Text } from "react-native";
 import { useRegister } from "../../hooks/useRegister";
 import RegisterForm from "../../components/register/RegisterForm";
-
 export default function RegisterScreen() {
   const registerProps = useRegister();
 
