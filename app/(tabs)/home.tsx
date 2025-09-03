@@ -1,9 +1,25 @@
+import Carousel from "@/components/home/Carousel";
+import Scan from "@/components/home/Scan";
+import Activity from "@/components/home/Activity";
 import React from "react";
-import { View } from "react-native";
+import { View, ScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function HomePage({ navigation }: any) {
+export default function HomePage() {
+  const insets = useSafeAreaInsets();
+  
   return (
-    <View className="flex-1 items-center justify-center bg-white px-8">
-    </View>
+    <ScrollView 
+      className="flex-1 bg-background px-8"
+      contentContainerStyle={{
+        paddingBottom: 110, // Space for floating tab bar (70px + margins)
+      }}
+    >
+      <View className="flex-col gap-4 mt-6">
+        <Carousel />
+        <Scan />
+        <Activity />
+      </View>
+    </ScrollView>
   );
 }
