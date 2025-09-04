@@ -7,12 +7,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function HomePage() {
   const insets = useSafeAreaInsets();
-  
+
   return (
-    <ScrollView 
-      className="flex-1 bg-background px-8"
+    <ScrollView
+      className="flex-1 bg-background px-4"
       contentContainerStyle={{
-        paddingBottom: 110, // Space for floating tab bar (70px + margins)
+        paddingBottom: 110,
       }}
     >
       <View className="flex-col gap-4 mt-6">
