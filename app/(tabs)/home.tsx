@@ -100,16 +100,46 @@ export default function HomePage() {
 
         const mimeType = fileType === "png" ? "image/png" : "image/jpeg";
 
+        // Create form data with user information
         const formData = new FormData();
         formData.append("file", {
-          uri,
+          uri: uri,
           type: mimeType,
-          name: `pest_image.${fileType}`,
+          name: `image.${fileType}`,
         } as any);
-
-        // Add RSBSA number if user is logged in
+        
+        // Debug: Log user info to verify data
+        console.log("Retake - User info for FormData:", userInfo);
+        
         if (userInfo?.rsbsaNumber) {
           formData.append("rsbsaNumber", userInfo.rsbsaNumber);
+          console.log("Retake - Added rsbsaNumber:", userInfo.rsbsaNumber);
+        }
+        
+        // Add additional user information
+        if (userInfo?.fullName) {
+          formData.append("fullName", userInfo.fullName);
+          console.log("Retake - Added fullName:", userInfo.fullName);
+        }
+        
+        if (userInfo?.barangay) {
+          formData.append("barangay", userInfo.barangay);
+          console.log("Retake - Added barangay:", userInfo.barangay);
+        }
+        
+        if (userInfo?.primaryCrop) {
+          formData.append("crop", userInfo.primaryCrop);
+          console.log("Retake - Added crop:", userInfo.primaryCrop);
+        }
+        
+        if (userInfo?.farmArea) {
+          formData.append("area", userInfo.farmArea.toString());
+          console.log("Retake - Added area:", userInfo.farmArea);
+        }
+        
+        if (userInfo?.contactNumber) {
+          formData.append("contact", userInfo.contactNumber);
+          console.log("Retake - Added contact:", userInfo.contactNumber);
         }
 
         console.log("Uploading retaken image to server...");

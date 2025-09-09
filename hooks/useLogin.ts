@@ -54,8 +54,16 @@ export function useLogin(debug = false) {
       log("Login response:", data);
 
       if (data.success) {
+        // Save all user data to AsyncStorage
         await AsyncStorage.setItem("userToken", data.token);
-        await AsyncStorage.setItem("userRSBSA", rsbsa);
+        await AsyncStorage.setItem("userRSBSA", data.user.rsbsaNumber);
+        await AsyncStorage.setItem("userFullName", data.user.fullName || "");
+        await AsyncStorage.setItem("userBarangay", data.user.barangay || "");
+        await AsyncStorage.setItem("userPrimaryCrop", data.user.crop || "");
+        await AsyncStorage.setItem("userFarmArea", data.user.area || "0");
+        await AsyncStorage.setItem("userContactNumber", data.user.contact || "");
+        
+        log("User data saved to storage:", data.user);
         router.replace({ pathname: "/(tabs)/home" });
       } else {
         Alert.alert(

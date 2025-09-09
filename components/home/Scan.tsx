@@ -94,16 +94,46 @@ const Scan: React.FC<ScanProps> = ({ onClassificationComplete }) => {
 
         const mimeType = fileType === "png" ? "image/png" : "image/jpeg";
 
+        // Create form data with user information
         const formData = new FormData();
         formData.append("file", {
-          uri,
+          uri: image.uri,
           type: mimeType,
-          name: `pest_image.${fileType}`,
+          name: `image.${fileType}`,
         } as any);
 
-        // Add RSBSA number if user is logged in
+        // Debug: Log user info to verify data
+        console.log("User info for FormData:", userInfo);
+
         if (userInfo?.rsbsaNumber) {
           formData.append("rsbsaNumber", userInfo.rsbsaNumber);
+          console.log("Added rsbsaNumber:", userInfo.rsbsaNumber);
+        }
+
+        // Add additional user information
+        if (userInfo?.fullName) {
+          formData.append("fullName", userInfo.fullName);
+          console.log("Added fullName:", userInfo.fullName);
+        }
+
+        if (userInfo?.barangay) {
+          formData.append("barangay", userInfo.barangay);
+          console.log("Added barangay:", userInfo.barangay);
+        }
+
+        if (userInfo?.primaryCrop) {
+          formData.append("crop", userInfo.primaryCrop);
+          console.log("Added crop:", userInfo.primaryCrop);
+        }
+
+        if (userInfo?.farmArea) {
+          formData.append("area", userInfo.farmArea.toString());
+          console.log("Added area:", userInfo.farmArea);
+        }
+
+        if (userInfo?.contactNumber) {
+          formData.append("contact", userInfo.contactNumber);
+          console.log("Added contact:", userInfo.contactNumber);
         }
 
         console.log("Uploading image to server...");
