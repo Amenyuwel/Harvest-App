@@ -1,19 +1,11 @@
 import React from "react";
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  Dimensions,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, Image, TouchableOpacity, Dimensions } from "react-native";
 import {
   CheckCircle,
   AlertCircle,
   XCircle,
-  Share,
-  RotateCcw,
   ArrowLeft,
+  MapPin,
 } from "lucide-react-native";
 
 interface ClassificationData {
@@ -22,25 +14,23 @@ interface ClassificationData {
   imageUri: string;
   timestamp?: string;
   id?: string;
+  location_info?: {
+    latitude: number;
+    longitude: number;
+    city: string;
+    country: string;
+  };
 }
 
 interface ClassifiedProps {
   data: ClassificationData;
   onBack?: () => void;
-  onRetake?: () => void;
-  onShare?: () => void;
-  isRetakeLoading?: boolean;
+  onSave?: () => void;
 }
 
-const Classified: React.FC<ClassifiedProps> = ({
-  data,
-  onBack,
-  onRetake,
-  onShare,
-  isRetakeLoading = false,
-}) => {
+const Classified: React.FC<ClassifiedProps> = ({ data, onBack, onSave }) => {
   const screenWidth = Dimensions.get("window").width;
-  const imageSize = screenWidth * 0.8;
+  const imageSize = screenWidth * 0.6;
 
   const formatPestName = (prediction: string): string => {
     const pestNames: Record<string, string> = {
@@ -95,67 +85,82 @@ const Classified: React.FC<ClassifiedProps> = ({
   const description = getPestDescription(data.prediction);
 
   return (
-    <View className="bg-white w-full rounded-3xl p-6 shadow-lg">
-      {/* Back Button */}
-      {onBack && (
+    <View className="bg-white flex-1 rounded-2xl">
+      {/* Header */}
+      <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
         <TouchableOpacity
-          className="absolute top-4 left-4 z-10 bg-gray-100 rounded-full p-2"
           onPress={onBack}
-          activeOpacity={0.8}
+          className="p-2 rounded-full bg-gray-100"
+          activeOpacity={0.7}
         >
           <ArrowLeft size={24} color="#374151" />
         </TouchableOpacity>
-      )}
-
-      {/* Header */}
-      <View className="items-center mb-6">
-        <Text className="text-2xl font-bold text-gray-800 mb-2">
-          Classification Result
+        <Text className="text-lg font-semibold text-main">
+          CLASSIFICATION RESULT
         </Text>
+        <View className="w-10" />
+      </View>
+
+      {/* Content */}
+      <View className="flex-1 p-6">
+        {/* Pest name + confidence (main focus) */}
+        <View className="items-center mb-4">
+          <Text className="text-4xl font-bold text-gray-800 text-center">
+            {pestName.toUpperCase()}
+          </Text>
+        </View>
+
+        {/* Location (with MapPin, if available) */}
+        {data.location_info?.city && data.location_info?.country && (
+          <View className="flex-row items-center justify-center mb-4">
+            <MapPin size={18} color="#ef4444" />
+            <Text className="text-lg text-gray-600 ml-2">
+              {data.location_info.city}, {data.location_info.country}
+            </Text>
+          </View>
+        )}
+
+        {/* Timestamp */}
         {data.timestamp && (
-          <Text className="text-sm text-gray-500">
+          <Text className="text-sm text-gray-500 text-center mb-6">
             {new Date(data.timestamp).toLocaleString()}
           </Text>
         )}
-      </View>
 
-      {/* Image Preview */}
-      <View className="items-center mb-6">
-        <View
-          className="rounded-2xl overflow-hidden border-4 border-gray-200 shadow-md"
-          style={{ width: imageSize, height: imageSize }}
-        >
-          <Image
-            source={{ uri: data.imageUri }}
-            style={{ width: "100%", height: "100%" }}
-            resizeMode="cover"
-          />
-        </View>
-      </View>
-
-      {/* Classification Results */}
-      <View className="bg-gray-50 rounded-2xl p-5 mb-6">
-        {/* Pest Name */}
-        <View className="items-center mb-4">
-          <Text className="text-3xl font-bold text-gray-800 text-center mb-2">
-            {pestName}
-          </Text>
-
-          {/* Confidence Level */}
-          <View className="flex-row items-center gap-2">
-            {getConfidenceIcon(data.confidence)}
-            <Text
-              className="text-lg font-semibold"
-              style={{ color: getConfidenceColor(data.confidence) }}
-            >
-              {confidencePercent}% • {getConfidenceLabel(data.confidence)}
-            </Text>
+        {/* Image preview */}
+        <View className="items-center mb-6">
+          <View
+            className="rounded-2xl overflow-hidden border-2 border-gray-200 shadow-md"
+            style={{ width: imageSize, height: imageSize }}
+          >
+            <Image
+              source={{ uri: data.imageUri }}
+              style={{ width: "100%", height: "100%" }}
+              resizeMode="cover"
+            />
           </View>
         </View>
 
-        {/* Confidence Bar */}
-        <View className="mb-4">
-          <View className="bg-gray-200 h-3 rounded-full overflow-hidden">
+        {/* Confidence bar */}
+        <View className="mb-6">
+          {/* Title */}
+          <Text className="text-xl font-medium text-gray-700 mb-2 text-center">
+            Confidence Level
+          </Text>
+
+          {/* Icon + % */}
+          <View className="flex-row items-center justify-center gap-2 mb-2">
+            {getConfidenceIcon(data.confidence)}
+            <Text
+              className="text-xl font-semibold"
+              style={{ color: getConfidenceColor(data.confidence) }}
+            >
+              {confidencePercent}%
+            </Text>
+          </View>
+
+          {/* Bar (full width) */}
+          <View className="bg-gray-200 h-4 rounded-full overflow-hidden">
             <View
               className="h-full rounded-full"
               style={{
@@ -164,10 +169,18 @@ const Classified: React.FC<ClassifiedProps> = ({
               }}
             />
           </View>
+
+          {/* Confidence Label */}
+          <Text
+            className="text-sm font-medium mt-1 text-center"
+            style={{ color: getConfidenceColor(data.confidence) }}
+          >
+            {getConfidenceLabel(data.confidence)}
+          </Text>
         </View>
 
-        {/* Description */}
-        <View className="bg-white rounded-xl p-4 border border-gray-200">
+        {/* Description card */}
+        <View className="bg-gray-50 rounded-xl p-4 border border-gray-200">
           <Text className="text-sm font-semibold text-gray-700 mb-2">
             About this pest:
           </Text>
@@ -175,35 +188,40 @@ const Classified: React.FC<ClassifiedProps> = ({
         </View>
       </View>
 
-      {/* Action Buttons */}
-      <View className="flex-row gap-3 justify-center items-center">
-        <TouchableOpacity
-          className={`flex-1 rounded-xl py-3 flex-row items-center justify-center gap-2 ${
-            isRetakeLoading ? "bg-gray-300" : "bg-blue-500"
-          }`}
-          onPress={onRetake}
-          disabled={isRetakeLoading}
-          activeOpacity={0.8}
-        >
-          {isRetakeLoading ? (
-            <>
-              <ActivityIndicator size={20} color="#666" />
-              <Text className="text-gray-600 font-semibold">Analyzing...</Text>
-            </>
-          ) : (
-            <>
-              <RotateCcw size={20} color="white" />
-              <Text className="text-white font-semibold">Retake</Text>
-            </>
-          )}
-        </TouchableOpacity>
+      {/* Actions */}
+      <View className="p-6">
+        <View className="flex-row gap-3">
+          {/* Primary action (Save) */}
+          <TouchableOpacity
+            className="flex-1 rounded-xl py-4 bg-green"
+            onPress={onSave}
+            activeOpacity={0.8}
+          >
+            <Text className="text-main font-semibold text-center text-lg">
+              Save
+            </Text>
+          </TouchableOpacity>
+
+          {/* Secondary action (Back) */}
+          <TouchableOpacity
+            className="flex-1 rounded-xl py-4 bg-gray-200"
+            onPress={onBack}
+            activeOpacity={0.8}
+          >
+            <Text className="text-gray-700 font-semibold text-center text-lg">
+              Back
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Scan ID */}
+      {/* Footer - Scan ID (metadata) */}
       {data.id && (
-        <Text className="text-xs text-gray-400 text-center mt-4">
-          Scan ID: {data.id}
-        </Text>
+        <View className="px-6 p-4 border-t border-gray-200">
+          <Text className="text-xs text-gray-400 text-center">
+            Scan ID: {data.id}
+          </Text>
+        </View>
       )}
     </View>
   );

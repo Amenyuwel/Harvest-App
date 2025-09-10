@@ -22,6 +22,12 @@ interface ClassificationData {
   imageUri: string;
   timestamp: string;
   id?: string;
+  location_info?: {
+    latitude: number;
+    longitude: number;
+    city: string;
+    country: string;
+  };
 }
 
 interface ScanProps {
@@ -183,6 +189,7 @@ const Scan: React.FC<ScanProps> = ({ onClassificationComplete }) => {
             imageUri: uri,
             timestamp: new Date().toISOString(),
             id: data.id || `scan_${Date.now()}`,
+            location_info: data.location_info || undefined,
           };
 
           // Call the callback to navigate to Classified component
