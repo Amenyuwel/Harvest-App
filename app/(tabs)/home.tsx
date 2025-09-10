@@ -2,11 +2,9 @@ import Carousel from "@/components/home/Carousel";
 import Scan from "@/components/home/Scan";
 import Activity from "@/components/home/Activity";
 import Classified from "@/components/output/Classified";
-import React, { useState, useEffect } from "react";
-import { View, ScrollView, Alert } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import React, { useState } from "react";
+import { View, ScrollView } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import * as ImagePicker from "expo-image-picker";
 import { useClassificationHistory, ClassificationHistoryItem } from "@/hooks/useClassificationHistory";
 import { useUserInfo } from "@/hooks/useUserInfo";
 
@@ -16,14 +14,18 @@ interface ClassificationData {
   imageUri: string;
   timestamp: string;
   id?: string;
+  location_info?: {
+    latitude: number;
+    longitude: number;
+    city: string;
+    country: string;
+  };
 }
 
 export default function HomePage() {
-  const insets = useSafeAreaInsets();
   const [showClassified, setShowClassified] = useState(false);
   const [classificationData, setClassificationData] =
     useState<ClassificationData | null>(null);
-  const [isRetakeLoading, setIsRetakeLoading] = useState(false);
 
   // Get user info and history hook
   const { userInfo } = useUserInfo();
@@ -38,6 +40,10 @@ export default function HomePage() {
   );
 
   const handleClassificationComplete = async (data: ClassificationData) => {
+    // Debug: Log the data to see if location_info exists
+    console.log("🔍 Classification data received:", data);
+    console.log("🗺️ Location info:", data.location_info);
+    
     setClassificationData(data);
     setShowClassified(true);
     
@@ -60,6 +66,11 @@ export default function HomePage() {
   };
 
   const handleHistoryItemClick = (item: ClassificationHistoryItem) => {
+    // Debug: Log history item data
+    console.log("🔍 History item clicked:", item);
+    console.log("🗺️ Server response:", item.serverResponse);
+    console.log("🗺️ Location from server response:", item.serverResponse?.location_info);
+    
     // Convert history item to ClassificationData format
     const classificationData: ClassificationData = {
       prediction: item.prediction,
@@ -67,176 +78,13 @@ export default function HomePage() {
       imageUri: item.imageUri,
       timestamp: item.timestamp,
       id: item.id,
+      location_info: item.serverResponse?.location_info || undefined,
     };
+    
+    console.log("🔍 Final classification data for Classified component:", classificationData);
     
     setClassificationData(classificationData);
     setShowClassified(true);
-  };
-
-  const openCameraForRetake = async (): Promise<void> => {
-    try {
-      setIsRetakeLoading(true);
-
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(
-          "Permission Required",
-          "Camera access is needed to scan pests."
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const image = result.assets[0];
-        const uri = image.uri;
-        const fileType = uri.split(".").pop()?.toLowerCase() || "jpg";
-
-        const mimeType = fileType === "png" ? "image/png" : "image/jpeg";
-
-        // Create form data with user information
-        const formData = new FormData();
-        formData.append("file", {
-          uri: uri,
-          type: mimeType,
-          name: `image.${fileType}`,
-        } as any);
-        
-        // Debug: Log user info to verify data
-        console.log("Retake - User info for FormData:", userInfo);
-        
-        if (userInfo?.rsbsaNumber) {
-          formData.append("rsbsaNumber", userInfo.rsbsaNumber);
-          console.log("Retake - Added rsbsaNumber:", userInfo.rsbsaNumber);
-        }
-        
-        // Add additional user information
-        if (userInfo?.fullName) {
-          formData.append("fullName", userInfo.fullName);
-          console.log("Retake - Added fullName:", userInfo.fullName);
-        }
-        
-        if (userInfo?.barangay) {
-          formData.append("barangay", userInfo.barangay);
-          console.log("Retake - Added barangay:", userInfo.barangay);
-        }
-        
-        if (userInfo?.primaryCrop) {
-          formData.append("crop", userInfo.primaryCrop);
-          console.log("Retake - Added crop:", userInfo.primaryCrop);
-        }
-        
-        if (userInfo?.farmArea) {
-          formData.append("area", userInfo.farmArea.toString());
-          console.log("Retake - Added area:", userInfo.farmArea);
-        }
-        
-        if (userInfo?.contactNumber) {
-          formData.append("contact", userInfo.contactNumber);
-          console.log("Retake - Added contact:", userInfo.contactNumber);
-        }
-
-        console.log("Uploading retaken image to server...");
-
-        // Add timeout to the fetch request
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-        const response = await fetch(`${process.env.EXPO_PUBLIC_FLASK_URL}/predict`, {
-          method: "POST",
-          body: formData,
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `Server responded with ${response.status}: ${errorText}`
-          );
-        }
-
-        const data = await response.json();
-        console.log("Retake prediction response:", data);
-
-        // Validate response structure
-        if (
-          typeof data.prediction === "string" &&
-          typeof data.confidence === "number"
-        ) {
-          // Prepare new classification data
-          const newClassificationData: ClassificationData = {
-            prediction: data.prediction,
-            confidence: data.confidence,
-            imageUri: uri,
-            timestamp: new Date().toISOString(),
-            id: data.id || `retake_${Date.now()}`,
-          };
-
-          // Update the classification data to show new results
-          setClassificationData(newClassificationData);
-          
-          // Save retake to history if user is logged in
-          if (userInfo?.rsbsaNumber) {
-            await addToHistory({
-              prediction: newClassificationData.prediction,
-              confidence: newClassificationData.confidence,
-              imageUri: newClassificationData.imageUri,
-              timestamp: newClassificationData.timestamp,
-              rsbsaNumber: userInfo.rsbsaNumber,
-              serverResponse: data,
-            });
-          }
-        } else {
-          throw new Error("Invalid response format from server");
-        }
-      }
-    } catch (error: any) {
-      console.error("Retake image classification failed:", error);
-
-      let errorMessage = "Failed to classify retaken image. ";
-
-      if (error.name === "AbortError") {
-        errorMessage =
-          "Request timed out. Please check your connection and try again.";
-      } else if (
-        error.message?.includes("Network request failed") ||
-        error.message?.includes("fetch")
-      ) {
-        errorMessage =
-          "Cannot connect to the classification server. Please check your network connection.";
-      } else if (error.message?.includes("Server responded")) {
-        errorMessage = `Server error: ${error.message}`;
-      } else {
-        errorMessage += error.message || "Unknown error occurred.";
-      }
-
-      Alert.alert("❌ Retake Classification Failed", errorMessage);
-    } finally {
-      setIsRetakeLoading(false);
-    }
-  };
-
-  const handleRetake = () => {
-    openCameraForRetake();
-  };
-
-  const handleShare = async () => {
-    if (classificationData) {
-      // Implement share functionality
-      console.log("Sharing classification result:", classificationData);
-      // You can use expo-sharing or react-native-share here
-    }
   };
 
   return (
@@ -258,9 +106,6 @@ export default function HomePage() {
             <Classified
               data={classificationData}
               onBack={handleBack}
-              onRetake={handleRetake}
-              onShare={handleShare}
-              isRetakeLoading={isRetakeLoading}
             />
           )
         )}
